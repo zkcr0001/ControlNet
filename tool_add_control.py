@@ -13,6 +13,8 @@ assert os.path.exists(os.path.dirname(output_path)), 'Output path is not valid.'
 import torch
 from share import *
 from cldm.model import create_model
+from omegaconf import OmegaConf
+from cldm.cldm import ControlLDM
 
 
 def get_node_name(name, parent_name):
@@ -25,6 +27,8 @@ def get_node_name(name, parent_name):
 
 
 model = create_model(config_path='./models/cldm_v15.yaml')
+# config = OmegaConf.load(f"./models/cldm_v15.yaml")
+# model = ControlLDM(**config.model.get("params", dict())).cpu()
 
 pretrained_weights = torch.load(input_path)
 if 'state_dict' in pretrained_weights:

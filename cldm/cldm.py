@@ -26,20 +26,29 @@ class ControlledUnetModel(UNetModel):
             t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
             emb = self.time_embed(t_emb)
             h = x.type(self.dtype)
+            # count = 0
+            # print(count,h.shape)
             for module in self.input_blocks:
                 h = module(h, emb, context)
+                # print(count,h.shape)
                 hs.append(h)
             h = self.middle_block(h, emb, context)
 
         if control is not None:
             h += control.pop()
 
+        # count = 0
+        # print(count,h.shape)
+
         for i, module in enumerate(self.output_blocks):
             if only_mid_control or control is None:
                 h = torch.cat([h, hs.pop()], dim=1)
             else:
                 h = torch.cat([h, hs.pop() + control.pop()], dim=1)
+            # count+=1
+            # print(count,"before:", h.shape)
             h = module(h, emb, context)
+            # print(count,"after:", h.shape)
 
         h = h.type(x.dtype)
         return self.out(h)
@@ -285,11 +294,15 @@ class ControlNet(nn.Module):
         t_emb = timestep_embedding(timesteps, self.model_channels, repeat_only=False)
         emb = self.time_embed(t_emb)
 
+        # print(hint.shape)
         guided_hint = self.input_hint_block(hint, emb, context)
+        # print(guided_hint.shape)
 
         outs = []
 
         h = x.type(self.dtype)
+        # print(h.shape)
+        # count = 1
         for module, zero_conv in zip(self.input_blocks, self.zero_convs):
             if guided_hint is not None:
                 h = module(h, emb, context)
@@ -298,6 +311,10 @@ class ControlNet(nn.Module):
             else:
                 h = module(h, emb, context)
             outs.append(zero_conv(h, emb, context))
+            # print(count)
+            # print(h.shape)
+            # count += 1
+        
 
         h = self.middle_block(h, emb, context)
         outs.append(self.middle_block_out(h, emb, context))
